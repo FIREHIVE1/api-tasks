@@ -8,7 +8,7 @@ class Role extends Model
 {
 
     /** @var string */
-    protected $table = 'role';
+    protected $table = 'roles';
 
     /**
      * The attributes that are mass assignable.
