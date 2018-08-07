@@ -72,6 +72,50 @@ class UserController extends Controller
                 'name' => 'required',
                 'email' => 'required|email',
                 'password' => 'required',
+            ];
+
+            $messages = [
+                'name.required' => 'Name empty',
+                'email.required' => 'Email empty',
+                'password.required' => 'Password empty',
+            ];
+
+            $validator = Validator::make($request->all(), $rules, $messages);
+
+            if (!$validator->passes()) {
+                return $this->returnBadRequest($validator->messages());
+            }
+
+            $user = new User();
+
+            $user->name = $request->get('name');
+            $user->email = $request->get('email');
+            $user->password = Hash::make($request->get('password'));
+            $user->status = User::STATUS_UNCONFIRMED;
+            $user->role_id = User::ROLE_USER;
+            $user->save();
+
+            return $this->returnSuccess($user);
+        } catch (\Exception $e) {
+            return $this->returnError($e->getMessage());
+        }
+    }
+
+    public function activate($id)
+    {
+            $userActivate= User::where('id', $id)->first();
+            $userActivate->status = User::STATUS_CONFIRMED;
+            $userActivate->update();
+            return $this->returnSuccess($userActivate);
+    }
+
+    public function update($id,Request $request)
+    {
+        try {
+            $rules = [
+                'name' => 'required',
+                'email' => 'required|email',
+                'password' => 'required',
                 'status' => 'required',
                 'role_id' => 'required'
             ];
@@ -90,12 +134,12 @@ class UserController extends Controller
                 return $this->returnBadRequest($validator->messages());
             }
 
-            $user = new User();
+            $user = User::where('id',$id)->first();
 
             $user->name = $request->get('name');
             $user->email = $request->get('email');
             $user->password = Hash::make($request->get('password'));
-            $user->status = User::STATUS_UNCONFIRMED;
+            $user->status = $request->get('status');
             $user->role_id = $request->get('role_id');
             $user->save();
 
@@ -103,13 +147,5 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return $this->returnError($e->getMessage());
         }
-    }
-
-    public function activate($id)
-    {
-            $userActivate= User::where('id', $id)->first();
-            $userActivate->status = User::STATUS_CONFIRMED;
-            $userActivate->update();
-            return $this->returnSuccess($userActivate);
     }
 }

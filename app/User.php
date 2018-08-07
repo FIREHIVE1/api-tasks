@@ -18,6 +18,13 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
 
     /** @var int */
     const STATUS_CONFIRMED = 1;
+
+    /** @var int */
+    const ROLE_USER = 1;
+
+    /** @var int */
+    const ROLE_ADMIN = 2;
+
     /**
      * The attributes that are mass assignable.
      *

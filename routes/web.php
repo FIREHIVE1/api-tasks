@@ -30,6 +30,8 @@ $router->group(['namespace' => API_VERSION, 'prefix' => API_VERSION, 'middleware
     $router->post('/login', ['uses' => 'UserController@login']);
     $router->post('/register', ['uses' => 'UserController@register']);
     $router->patch('/activate/{id}', ['uses' => 'UserController@activate']);
+    $router->patch('/update/{id}', ['uses' => 'UserController@update']);
+
 });
 
 /** Routes with auth */
