@@ -28,34 +28,40 @@ class UserController extends Controller
      * @return \Illuminate\Http\JsonResponse
      * @throws \GenTux\Jwt\Exceptions\NoTokenException
      */
-    public function login(Request $request, User $userModel)
+    public function login(Request $request, User $userModel, JwtToken $jwtToken)
     {
         $rules = [
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required'
         ];
 
         $messages = [
             'email.required' => 'Email empty',
-            'email.email'    => 'Email invalid',
-            'password.required'    => 'Password empty'
+            'email.email' => 'Email invalid',
+            'password.required' => 'Password empty'
         ];
 
         $validator = Validator::make($request->all(), $rules, $messages);
 
-        if ( ! $validator->passes()) {
+        if (!$validator->passes()) {
             return $this->returnBadRequest();
         }
 
         $user = $userModel->login($request->email, $request->password);
 
-        if ( ! $user) {
+        if (!$user) {
             return $this->returnNotFound('User sau parola gresite');
         }
 
+        $token = $jwtToken->createToken($user);
+
+        $data = [
+            'user' => $user,
+            'jwt' => $token->token()
+        ];
 
 
-        return $this->returnSuccess($user);
+        return $this->returnSuccess($data);
     }
 
 
@@ -64,7 +70,7 @@ class UserController extends Controller
         try {
             $rules = [
                 'name' => 'required',
-                'email'    => 'required|email',
+                'email' => 'required|email',
                 'password' => 'required',
                 'status' => 'required',
                 'role_id' => 'required'
@@ -80,7 +86,7 @@ class UserController extends Controller
 
             $validator = Validator::make($request->all(), $rules, $messages);
 
-             if (!$validator->passes()) {
+            if (!$validator->passes()) {
                 return $this->returnBadRequest($validator->messages());
             }
 
@@ -89,13 +95,21 @@ class UserController extends Controller
             $user->name = $request->get('name');
             $user->email = $request->get('email');
             $user->password = Hash::make($request->get('password'));
-            $user->status = $request->get('status');
+            $user->status = User::STATUS_UNCONFIRMED;
             $user->role_id = $request->get('role_id');
             $user->save();
 
-             return $this->returnSuccess($user);
+            return $this->returnSuccess($user);
         } catch (\Exception $e) {
             return $this->returnError($e->getMessage());
         }
+    }
+
+    public function activate($id)
+    {
+            $userActivate= User::where('id', $id)->first();
+            $userActivate->status = User::STATUS_CONFIRMED;
+            $userActivate->update();
+            return $this->returnSuccess($userActivate);
     }
 }

@@ -29,9 +29,10 @@ $router->options(
 $router->group(['namespace' => API_VERSION, 'prefix' => API_VERSION, 'middleware' => 'cors'], function () use ($router) {
     $router->post('/login', ['uses' => 'UserController@login']);
     $router->post('/register', ['uses' => 'UserController@register']);
-
+    $router->patch('/activate/{id}', ['uses' => 'UserController@activate']);
 });
 
 /** Routes with auth */
 $router->group(['namespace' => API_VERSION, 'prefix' => API_VERSION, 'middleware' => 'cors|jwt'], function () use ($router) {
- });
+//    $router->patch('/verify/{id}', ['uses' => 'UserController@verify']);
+});
