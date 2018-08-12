@@ -1,21 +1,20 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: iongh
- * Date: 8/1/2018
- * Time: 3:37 PM
- */
 
 namespace App\Http\Controllers\v1;
 
-
 use App\Http\Controllers\Controller;
+use App\Role;
 use App\User;
 use GenTux\Jwt\JwtToken;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
+/**
+ * Class UserController
+ *
+ * @package App\Http\Controllers\v1
+ */
 class UserController extends Controller
 {
     /**
@@ -26,74 +25,165 @@ class UserController extends Controller
      * @param JwtToken $jwtToken
      *
      * @return \Illuminate\Http\JsonResponse
-     * @throws \GenTux\Jwt\Exceptions\NoTokenException
      */
     public function login(Request $request, User $userModel, JwtToken $jwtToken)
     {
-        $rules = [
-            'email' => 'required|email',
-            'password' => 'required'
-        ];
+        try {
+            $rules = [
+                'email' => 'required|email',
+                'password' => 'required'
+            ];
 
-        $messages = [
-            'email.required' => 'Email empty',
-            'email.email' => 'Email invalid',
-            'password.required' => 'Password empty'
-        ];
+            $validator = Validator::make($request->all(), $rules);
 
-        $validator = Validator::make($request->all(), $rules, $messages);
+            if (!$validator->passes()) {
+                return $this->returnBadRequest('Please fill all required fields');
+            }
 
-        if (!$validator->passes()) {
-            return $this->returnBadRequest();
+            $user = $userModel->login($request->email, $request->password);
+
+            if (!$user) {
+                return $this->returnNotFound('Invalid credentials');
+            }
+
+            if ($user->status === User::STATUS_INACTIVE) {
+                return $this->returnError('User is not approved by admin');
+            }
+
+            $token = $jwtToken->createToken($user);
+
+            $data = [
+                'user' => $user,
+                'jwt' => $token->token()
+            ];
+
+            return $this->returnSuccess($data);
+        } catch (\Exception $e) {
+            return $this->returnError($e->getMessage());
         }
-
-        $user = $userModel->login($request->email, $request->password);
-
-        if (!$user) {
-            return $this->returnNotFound('User sau parola gresite');
-        }
-
-        $token = $jwtToken->createToken($user);
-
-        $data = [
-            'user' => $user,
-            'jwt' => $token->token()
-        ];
-
-
-        return $this->returnSuccess($data);
     }
 
-
+    /**
+     * Register user
+     *
+     * @param Request $request
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function register(Request $request)
     {
         try {
             $rules = [
                 'name' => 'required',
-                'email' => 'required|email',
-                'password' => 'required',
+                'email' => 'required|email|unique:users',
+                'password' => 'required'
             ];
 
-            $messages = [
-                'name.required' => 'Name empty',
-                'email.required' => 'Email empty',
-                'password.required' => 'Password empty',
-            ];
-
-            $validator = Validator::make($request->all(), $rules, $messages);
+            $validator = Validator::make($request->all(), $rules);
 
             if (!$validator->passes()) {
-                return $this->returnBadRequest($validator->messages());
+                return $this->returnBadRequest('Please fill all required fields');
             }
 
             $user = new User();
 
-            $user->name = $request->get('name');
-            $user->email = $request->get('email');
-            $user->password = Hash::make($request->get('password'));
-            $user->status = User::STATUS_UNCONFIRMED;
-            $user->role_id = User::ROLE_USER;
+            $user->name = $request->name;
+            $user->email = $request->email;
+            $user->password = Hash::make($request->password);
+            $user->status = User::STATUS_INACTIVE;
+            $user->role_id = Role::ROLE_USER;
+
             $user->save();
+
+            return $this->returnSuccess();
+        } catch (\Exception $e) {
+            return $this->returnError($e->getMessage());
+        }
+    }
+
+    /**
+     * Forgot password
+     *
+     * @param Request $request
+     * @param User $userModel
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function forgotPassword(Request $request, User $userModel)
+    {
+        try {
+            $rules = [
+                'email' => 'required|email|exists:users'
+            ];
+
+            $validator = Validator::make($request->all(), $rules);
+
+            if (!$validator->passes()) {
+                return $this->returnBadRequest('Please fill all required fields');
+            }
+
+            $user = $userModel::where('email', $request->email)->get()->first();
+
+            $user->forgot_code = strtoupper(str_random(6));
+            $user->save();
+
+            //TODO should sent an email to user with code
+
+            return $this->returnSuccess();
+        } catch (\Exception $e) {
+            return $this->returnError($e->getMessage());
+        }
+    }
+
+    /**
+     * Change user password
+     *
+     * @param Request $request
+     * @param User $userModel
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function changePassword(Request $request, User $userModel)
+    {
+        try {
+            $rules = [
+                'email' => 'required|email|exists:users',
+                'code' => 'required',
+                'password' => 'required'
+            ];
+
+            $validator = Validator::make($request->all(), $rules);
+
+            if (!$validator->passes()) {
+                return $this->returnBadRequest('Please fill all required fields');
+            }
+
+            $user = $userModel::where('email', $request->email)->where('forgot_code', $request->code)->get()->first();
+
+            if (!$user) {
+                $this->returnNotFound('Code is not valid');
+            }
+
+            $user->password = Hash::make($request->password);
+            $user->forgot_code = '';
+
+            $user->save();
+
+            return $this->returnSuccess();
+        } catch (\Exception $e) {
+            return $this->returnError($e->getMessage());
+        }
+    }
+
+    /**
+     * Get logged user
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function get()
+    {
+        try {
+            $user = $this->validateSession();
 
             return $this->returnSuccess($user);
         } catch (\Exception $e) {
@@ -101,46 +191,26 @@ class UserController extends Controller
         }
     }
 
-    public function activate($id)
-    {
-            $userActivate= User::where('id', $id)->first();
-            $userActivate->status = User::STATUS_CONFIRMED;
-            $userActivate->update();
-            return $this->returnSuccess($userActivate);
-    }
-
-    public function update($id,Request $request)
+    /**
+     * Update logged user
+     *
+     * @param Request $request
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(Request $request)
     {
         try {
-            $rules = [
-                'name' => 'required',
-                'email' => 'required|email',
-                'password' => 'required',
-                'status' => 'required',
-                'role_id' => 'required'
-            ];
+            $user = $this->validateSession();
 
-            $messages = [
-                'name.required' => 'Name empty',
-                'email.required' => 'Email empty',
-                'password.required' => 'Password empty',
-                'status.required' => 'Status empty',
-                'role_id.required' => 'Role_id empty'
-            ];
-
-            $validator = Validator::make($request->all(), $rules, $messages);
-
-            if (!$validator->passes()) {
-                return $this->returnBadRequest($validator->messages());
+            if ($request->has('name')) {
+                $user->name = $request->name;
             }
 
-            $user = User::where('id',$id)->first();
+            if ($request->has('password')) {
+                $user->password = Hash::make($request->password);
+            }
 
-            $user->name = $request->get('name');
-            $user->email = $request->get('email');
-            $user->password = Hash::make($request->get('password'));
-            $user->status = $request->get('status');
-            $user->role_id = $request->get('role_id');
             $user->save();
 
             return $this->returnSuccess($user);
