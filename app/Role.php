@@ -12,10 +12,10 @@ use Illuminate\Database\Eloquent\Model;
 class Role extends Model
 {
     /** @var int */
-    const ROLE_ADMIN = 2;
+    const ROLE_USER = 1;
 
     /** @var int */
-    const ROLE_USER = 1;
+    const ROLE_ADMIN = 2;
 
     /**
      * The attributes that are mass assignable.
