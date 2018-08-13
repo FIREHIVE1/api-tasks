@@ -54,7 +54,6 @@ class UserController extends Controller
             $token = $jwtToken->createToken($user);
 
             $data = [
-                'user' => $user,
                 'jwt' => $token->token()
             ];
 
@@ -281,7 +280,10 @@ class UserController extends Controller
             }
 
             $user = $this->validateSession();
-            $task = Task::find($id);
+
+            if(!$task = Task::find($id)){
+                return $this->returnNotFound("Task doesn't exist");
+            }
 
             if($user->id != $task->user_id){
                 return $this->returnError("Can't edit this task because it's not yours");

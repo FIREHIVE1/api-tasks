@@ -200,7 +200,10 @@ class AdminController extends Controller
                 return $this->returnBadRequest('Please fill all required fields');
             }
 
-            $task = Task::find($id);
+            if(!$task = Task::find($id)){
+                return $this->returnNotFound("Task doesn't exist");
+            }
+
             $task->name = $request->input('name');
             $task->description = $request->input('description');
             $task->status = $request->input('status');
@@ -223,7 +226,9 @@ class AdminController extends Controller
     public function deleteTask($id)
     {
         try {
-            $task = Task::find($id);
+            if(!$task = Task::find($id)){
+                return $this->returnNotFound("Task doesn't exist");
+            }
 
             $task->delete();
 
