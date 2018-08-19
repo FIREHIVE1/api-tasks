@@ -5,12 +5,11 @@ namespace App\Http\Controllers\v1;
 use App\Http\Controllers\Controller;
 use App\Role;
 use App\User;
-use App\Task;
 use GenTux\Jwt\JwtToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-
+use App\Services\EmailService;
 /**
  * Class UserController
  *
@@ -125,10 +124,13 @@ class UserController extends Controller
             $user = $userModel::where('email', $request->email)->get()->first();
 
             $user->forgot_code = strtoupper(str_random(6));
-            $user->save();
+
 
             //TODO should sent an email to user with code
+            $emailService = new EmailService();
+            $emailService->sendForgotPassword($user);
 
+            $user->save();
             return $this->returnSuccess();
         } catch (\Exception $e) {
             return $this->returnError($e->getMessage());
@@ -217,86 +219,5 @@ class UserController extends Controller
             return $this->returnError($e->getMessage());
         }
     }
-
-    /**
-     * Add task
-     *
-     * @param Request $request
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function addTask(Request $request){
-        try{
-            $rules = [
-                'name' => 'required',
-                'description' => 'required',
-                'status' => 'required',
-                'assign' => 'required'
-             ];
-
-            $validator = Validator::make($request->all(), $rules);
-
-            if (!$validator->passes()) {
-                return $this->returnBadRequest('Please fill all required fields');
-            }
-
-            $user = $this->validateSession();
-
-            $task = new Task();
-            $task->name = $request->input('name');
-            $task->description = $request->input('description');
-            $task->status = $request->input('status');
-            $task->user_id = $user->id;
-            $task->assign = $request->input('assign');
-            $task->save();
-            return $this->returnSuccess($task);
-        } catch (\Exception $e) {
-            return $this->returnError($e->getMessage());
-        }
-    }
-
-    /**
-     * Edit task
-     *
-     * @param $id
-     *
-     * @param Request $request
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function editTask($id, Request $request){
-        try{
-            $rules = [
-                'name' => 'required',
-                'description' => 'required',
-                'status' => 'required',
-                'assign' => 'required'
-            ];
-
-            $validator = Validator::make($request->all(), $rules);
-
-            if (!$validator->passes()) {
-                return $this->returnBadRequest('Please fill all required fields');
-            }
-
-            $user = $this->validateSession();
-
-            if(!$task = Task::find($id)){
-                return $this->returnNotFound("Task doesn't exist");
-            }
-
-            if($user->id != $task->user_id){
-                return $this->returnError("Can't edit this task because it's not yours");
-            }
-
-            $task->name = $request->input('name');
-            $task->description = $request->input('description');
-            $task->status = $request->input('status');
-            $task->assign = $request->input('assign');
-            $task->save();
-            return $this->returnSuccess($task);
-        } catch (\Exception $e) {
-            return $this->returnError($e->getMessage());
-        }
-    }
 }
+//

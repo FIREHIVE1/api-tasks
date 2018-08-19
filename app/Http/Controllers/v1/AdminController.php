@@ -5,7 +5,6 @@ namespace App\Http\Controllers\v1;
 use App\Http\Controllers\Controller;
 use App\Role;
 use App\User;
-use App\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -131,106 +130,6 @@ class AdminController extends Controller
             $user = User::find($id);
 
             $user->delete();
-
-            return $this->returnSuccess();
-        } catch (\Exception $e) {
-            return $this->returnError($e->getMessage());
-        }
-    }
-
-    /**
-     * Add a task
-     *
-     * @param Request $request
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function addTask(Request $request)
-    {
-        try {
-            $rules = [
-                'name' => 'required',
-                'description' => 'required',
-                'status' => 'required',
-                'user_id' => 'required',
-                'assign' => 'required'
-            ];
-            $validator = Validator::make($request->all(), $rules);
-
-            if (!$validator->passes()) {
-                return $this->returnBadRequest('Please fill all required fields');
-            }
-
-            $task = new Task();
-            $task->name = $request->input('name');
-            $task->description = $request->input('description');
-            $task->status = $request->input('status');
-            $task->user_id = $request->input('user_id');
-            $task->assign = $request->input('assign');
-            $task->save();
-            return $this->returnSuccess($task);
-        } catch (\Exception $e) {
-            return $this->returnError($e->getMessage());
-        }
-    }
-
-    /**
-     * Edit a task
-     *
-     * @param $id
-     *
-     * @param Request $request
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function editTask($id, Request $request)
-    {
-        try {
-            $rules = [
-                'name' => 'required',
-                'description' => 'required',
-                'status' => 'required',
-                'user_id' => 'required',
-                'assign' => 'required'
-            ];
-
-            $validator = Validator::make($request->all(), $rules);
-
-            if (!$validator->passes()) {
-                return $this->returnBadRequest('Please fill all required fields');
-            }
-
-            if(!$task = Task::find($id)){
-                return $this->returnNotFound("Task doesn't exist");
-            }
-
-            $task->name = $request->input('name');
-            $task->description = $request->input('description');
-            $task->status = $request->input('status');
-            $task->user_id = $request->input('user_id');
-            $task->assign = $request->input('assign');
-            $task->save();
-            return $this->returnSuccess($task);
-        } catch (\Exception $e) {
-            return $this->returnError($e->getMessage());
-        }
-    }
-
-    /**
-     * Delete a task
-     *
-     * @param $id
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function deleteTask($id)
-    {
-        try {
-            if(!$task = Task::find($id)){
-                return $this->returnNotFound("Task doesn't exist");
-            }
-
-            $task->delete();
 
             return $this->returnSuccess();
         } catch (\Exception $e) {
