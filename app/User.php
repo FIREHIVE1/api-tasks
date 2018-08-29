@@ -100,6 +100,26 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     }
 
     /**
+     * User usergroups
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function userGroups()
+    {
+        return $this->hasMany('App/userGroups','user_id','id');
+    }
+
+    /**
+     * User groups
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function Groups()
+    {
+        return $this->hasMany('App/Groups','owner_id','id');
+    }
+
+    /**
      * Login user
      *
      * @param $userEmail

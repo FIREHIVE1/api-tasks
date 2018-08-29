@@ -50,9 +50,19 @@ $router->group(['namespace' => API_VERSION, 'prefix' => API_VERSION, 'middleware
     });
 
     $router->get('/tasks', ['uses' => 'TaskController@getAll']);
-    $router->group(['prefix' => 'user'], function () use ($router) {
+    $router->group(['prefix' => 'task'], function () use ($router) {
         $router->post('/', ['uses' => 'TaskController@create']);
         $router->patch('/{id}', ['uses' => 'TaskController@update']);
         $router->delete('/{id}', ['uses' => 'TaskController@delete']);
+    });
+
+    $router->get('/groups', ['uses' => 'GroupController@getAll']);
+    $router->group(['prefix' => 'group'], function () use ($router) {
+        $router->post('/', ['uses' => 'GroupController@create']);
+        $router->patch('/{id}', ['uses' => 'GroupController@update']);
+        $router->delete('/{id}', ['uses' => 'GroupController@delete']);
+        $router->post('/{id}/user/{user_id}', ['uses' => 'GroupController@addUser']);
+        $router->delete('/{id}/user/{user_id}', ['uses' => 'GroupController@removeUser']);
+        $router->get('/{id}/users', ['uses' => 'GroupController@getUsers']);
     });
 });
